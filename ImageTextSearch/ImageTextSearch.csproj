@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\UploadedImages\0f416e04-f4d7-4bda-bec2-b890b3fb0c26.png" />
+    <Content Remove="wwwroot\UploadedImages\1189f7c6-8e00-4d52-83d6-6d364d1adca6.png" />
+    <Content Remove="wwwroot\UploadedImages\8cd76de9-b1bf-450f-9fcd-b824d0a75574.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blazored.Modal" Version="2.2.0" />
+    <PackageReference Include="DotNetEnv" Version="1.2.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.2.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.2.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.2.6" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="3.0.0-preview8-19413-06" />
+    <PackageReference Include="Tewr.Blazor.FileReader" Version="1.0.0.19267" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+    <Folder Include="UploadedImages\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\UploadedImages\0f416e04-f4d7-4bda-bec2-b890b3fb0c26.png" />
+    <None Include="wwwroot\UploadedImages\1189f7c6-8e00-4d52-83d6-6d364d1adca6.png" />
+    <None Include="wwwroot\UploadedImages\8cd76de9-b1bf-450f-9fcd-b824d0a75574.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BlazorModal\BlazorModal.csproj" />
+    <ProjectReference Include="..\ImageTaggerClient\ImageTaggerClient.csproj" />
+  </ItemGroup>
+
+</Project>

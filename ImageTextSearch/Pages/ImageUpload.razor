@@ -1,0 +1,156 @@
+﻿@page "/upload"
+@using System.IO;
+@using ImageTextSearch.Data;
+@using  Newtonsoft.Json;
+@inject IFileReaderService fileReaderService;
+@inject ImageService  ImageService
+<h1>Upload Images</h1>
+<br />
+Upload and automatically tag images.
+<br />
+<br />
+<style>
+    .@dropTargetClass {
+        display:block;
+        padding: 20px;
+        margin-bottom: 10px;
+        border: 1px dashed black;
+        border-radius: 5px;
+    }
+
+    .@dropTargetDragClass {
+        border-color: orangered;
+        font-weight: bold;
+    }
+</style>
+
+<div class="@DropClass"
+     @ref=dropTargetElement
+     @ondrop=OnDrop
+     @ondragenter=OnDragEnter
+     @ondragleave=OnDragLeave>
+    Drop Files here.
+    <br/>@NumFiles
+    @*@foreach (var fileInfo in FileList)
+    {
+        <br />@fileInfo.Name
+    }*@
+</div>
+<input id="additive" type="checkbox" value=@Additive @onchange="OnAdditiveChange" />
+<label for="additive">Additive</label>
+<br />
+
+<div class="progress">
+    <div class="progress-bar" role="progressbar" style="width:@Progress%;" aria-valuenow="@Progress" aria-valuemin="0" aria-valuemax="100">@Progress.ToString("0.##")%</div>
+</div>
+<br/>
+<button @onclick="ReadFile" class="btn btn-primary">Read file</button>
+<button @onclick="ClearFile" class="btn btn-primary">Clear</button>
+
+<br />
+<br />
+<textarea style="max-width: 100%;" cols="50" rows="20">@Output</textarea>
+@code {
+
+  ElementReference dropTargetElement;
+  IFileReaderRef dropReference;
+  int NumFiles { get; set; }
+  bool Additive { get; set; }
+  double Progress { get; set; }
+
+  const string dropTargetDragClass = "droptarget-drag";
+  const string dropTargetClass = "droptarget";
+
+  private List<string> _dropClasses = new List<string>() { dropTargetClass };
+
+  string DropClass => string.Join(" ", _dropClasses);
+  string Output { get; set; }
+  List<IFileInfo> FileList { get; } = new List<IFileInfo>();
+
+  protected override async Task OnAfterRenderAsync(bool isFirstRender)
+  {
+      if (isFirstRender)
+      {
+          dropReference = fileReaderService.CreateReference(dropTargetElement);
+          await dropReference.RegisterDropEventsAsync();
+      }
+  }
+
+  public async Task OnAdditiveChange(ChangeEventArgs e)
+  {
+      Additive = (bool)e.Value;
+      await dropReference.UnregisterDropEventsAsync();
+      await dropReference.RegisterDropEventsAsync();
+  }
+
+  public async Task ClearFile()
+  {
+      await dropReference.ClearValue();
+      await this.RefreshFileList();
+  }
+
+  public void OnDragEnter(EventArgs e)
+  {
+      _dropClasses.Add(dropTargetDragClass);
+  }
+
+  public void OnDragLeave(EventArgs e)
+  {
+      _dropClasses.Remove(dropTargetDragClass);
+  }
+
+  public async Task OnDrop(EventArgs e)
+  {
+      Output += "Dropped a file.";
+      _dropClasses.Remove(dropTargetDragClass);
+      this.StateHasChanged();
+      await this.RefreshFileList();
+  }
+
+  private async Task RefreshFileList()
+  {
+      //this.FileList.Clear();
+      //foreach (var file in await dropReference.EnumerateFilesAsync())
+      //{
+      //    var fileInfo = await file.ReadFileInfoAsync();
+      //    this.FileList.Add(fileInfo);
+      //}
+      NumFiles = (await dropReference.EnumerateFilesAsync()).Count();
+      this.StateHasChanged();
+  }
+
+  public async Task ReadFile()
+  {
+      Output = string.Empty;
+      this.StateHasChanged();
+      var nl = Environment.NewLine;
+
+      int current = 0;
+      foreach (var file in await dropReference.EnumerateFilesAsync())
+      {
+          var fileInfo = await file.ReadFileInfoAsync();
+          Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.Name)}: {fileInfo.Name}{nl}";
+          //Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.Size)}: {fileInfo.Size}{nl}";
+          //Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.Type)}: {fileInfo.Type}{nl}";
+          //Output += $"{nameof(IFileInfo)}.{nameof(fileInfo.LastModifiedDate)}: {fileInfo.LastModifiedDate?.ToString() ?? "(N/A)"}{nl}";
+          Output += $"Reading file...";
+
+          Progress = ((double)++current / (double)NumFiles) * 100.0;
+ 
+
+          using (var fs = await file.OpenReadAsync())
+          {
+              var result = await ImageService.CreateFromStreamAsync(fs, fileInfo.Name);
+              if (result.Item1 != null)
+              {
+                  Output += JsonConvert.SerializeObject(result.Item2);
+              }
+          }
+          Output += "Done!";
+          this.StateHasChanged();
+      }
+
+  }
+}
+
+

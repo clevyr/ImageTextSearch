@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+option csharp_namespace = "ImageTaggerClient";
+
+package ImageTagger;
+
+// The greeting service definition.
+service ImageTagger {
+  rpc TagImage (TagImageRequest) returns (TagImageReply);
+}
+
+// The request message containing the user's name.
+message TagImageRequest {
+  //bytes image = 1;
+  string filepath = 1;
+}
+
+
+// The response message containing the greetings
+message TagImageReply {
+  message TagImageItem {
+    message BoundingBox {
+      double minX = 1;
+      double minY = 2;
+      double maxX = 3;
+      double maxY = 4;
+    }
+    string tag = 1;
+    double score = 2;
+    BoundingBox boundingBox = 3;
+  }
+  
+  repeated TagImageItem items = 1;
+}

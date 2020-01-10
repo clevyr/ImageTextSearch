@@ -1,0 +1,128 @@
+﻿
+
+@using ImageTextSearch.Data
+@using ImageTextSearch.Models
+@inject ImageService ImageService;
+@inject BaseService<ImageTag>  ImageTagService;
+@inject TagService TagService;
+
+<style>
+        .image-button {
+            border: none;
+            background: none;
+            padding: 0;
+            position:relative;
+        }
+</style>
+<div class="@(Selected ? "full-screen" : "card")">
+    @*<button class="close card-img-top" type="button" @onclick="@( async () => await DeleteImage(item))">&times</button>*@
+    <div style="position:relative">
+     
+        <button class="image-button" @onclick=ImageClicked>
+            <img src="@Image.FilePath" class="card-img-top" alt="an image" />
+            <svg width="100%" height="100%" style="position:absolute;left:0;top:0">
+                @foreach (var imageTag in Image.ImageTags.Where(x => ShowAllTags ? true : x.Id == HoveringOverImageTagId))
+                {
+                    var width = 100 * (imageTag.MaxX - imageTag.MinX);
+                    var height = 100 * (imageTag.MaxY - imageTag.MinY);
+                    var x = imageTag.MinX * 100;
+                    var y = imageTag.MinY * 100;
+                    <rect width="@width%" height="@height%" x="@(imageTag.MinX * 100)%" y="@(imageTag.MinY * 100)%" style="fill-opacity:0;stroke-width:1;stroke:rgb(0, 255, 144)" />
+                    <text>
+                        <text x="@x%" y="@y%" fill="rgb(0, 255, 144)">@imageTag.TagId @imageTag.Score.ToString("0.##")</text>
+                    </text>
+                }
+            </svg>
+        </button>
+
+
+            
+    </div>
+    <div class="card-body">
+
+        @foreach (var imageTag in Image.ImageTags)
+        {
+            <button class="badge badge-secondary" @onclick=@( async () => await ImageTagClicked( imageTag))
+                    @onmouseover=@( () => HoveringOverImageTagId = imageTag.Id)
+                    @onmouseout=@(() => HoveringOverImageTagId = -1)>
+
+                @imageTag.TagId
+                @*<button class="close" type="button" @onclick:stopPropagation @onclick=@( async () => await RemoveTag(imageTag))>&times</button>*@
+            </button>
+        }
+        <button class="badge badge-info" @onclick=@( () => ShowAllTags = !ShowAllTags)>
+            @(ShowAllTags ? "Hover" : "All")
+        </button>
+    </div>
+    @*<div class="card-footer">
+        <button class="btn-sm btn-warning" @onclick=ImageClicked>@(Selected ? "Small" : "Big")</button>
+    </div>*@
+</div>
+
+
+@code {
+
+  [Parameter]
+  public Models.Image Image { get; set; }
+  private Image _Image;
+
+  [Parameter]
+  public EventCallback<Models.Image> OnImageDeleted{ get;set; }
+
+  [Parameter]
+  public EventCallback<Models.ImageTag>
+    OnImageTagClicked { get; set; }
+
+  [Parameter]
+  public EventCallback<Models.Image> OnImageClicked {get;set;}
+
+  bool ShowAllTags { get; set; }
+
+  int HoveringOverImageTagId { get; set; }
+
+  bool Selected { get; set; }
+
+  protected override void OnInitialized()
+  {
+      int i = 0;
+      ++i;
+  }
+
+  protected override void OnParametersSet()
+  {
+      int i = 0;
+      ++i;
+  }
+
+  protected override bool ShouldRender()
+  {
+      return Image != null;
+  }
+
+  public async Task DeleteImage()
+  {
+      await ImageService.DeleteAsync(Image);
+      if(OnImageDeleted.HasDelegate)
+          await OnImageDeleted.InvokeAsync(Image);
+  }
+
+  public async Task RemoveTag( ImageTag imageTag)
+  {
+     // await ImageTagService.DeleteAsync(imageTag);
+     // Image.ImageTags.Remove(imageTag);
+  }
+
+  public async Task ImageTagClicked(ImageTag imageTag)
+  {
+ 
+      if (OnImageTagClicked.HasDelegate)
+          await OnImageTagClicked.InvokeAsync(imageTag);
+  }
+  async Task ImageClicked()
+  {
+      Selected = !Selected;
+      // if (OnImageClicked.HasDelegate)
+      //     await OnImageClicked.InvokeAsync(Image);
+  }
+
+}

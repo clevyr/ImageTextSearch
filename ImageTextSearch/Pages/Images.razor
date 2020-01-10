@@ -1,0 +1,165 @@
+﻿@page "/images"
+@page "/images/{searchText}"
+
+@using ImageTextSearch.Data
+@using ImageTextSearch.Models
+@using ImageTaggerClient
+@using BlazorModal.Services
+@inject ImageService Service;
+@inject BaseService<ImageTag>  ImageTagService;
+@inject TagService TagService;
+@inject IModalService Modal
+<style>
+    .card-grid {
+        display: flex;
+        align-content: space-around;
+        flex-wrap: wrap;
+        flex-direction: row;
+    }
+
+    .card {
+        width: 300px;
+    }
+    .full-screen{
+       height: 100%;
+    }
+</style>
+<h1>Images</h1>
+
+@if (Items == null)
+{
+    <p><em>Loading...</em></p>
+}
+
+else
+{
+    @if (SelectedImage != null)
+    {
+        <BlazorModal.Modal>
+            <ImageComponent Image=@SelectedImage />
+        </BlazorModal.Modal>
+    }
+    <form @onsubmit="SearchAction">
+        <div class="input-group mb-3" style="width:400px">
+            <input type="text" class="form-control" @bind="SearchText" />
+            <button class="btn btn-sm btn-primary" type="submit">Search</button>
+        </div>
+    </form>
+
+    <div class="card-grid">
+        @foreach (var item in Items)
+        {
+            <ImageComponent Image="@item"
+                            OnImageDeleted=@( image => Items.Remove(image) )
+                            OnImageTagClicked=@( imageTag => Search(imageTag.TagId))
+                            OnImageClicked=@( image => ViewFullSizeImage(image)) />
+        }
+
+    </div>
+
+    <div class="row">
+        <button class="btn btn-lg btn-primary" @onclick=@GetNextItemsAsync>Load More</button>
+        <button class="btn btn-lg btn-primary" @onclick=@LoadAll>Load All</button>
+    </div>
+
+
+}
+@code {
+  List<Image> Items;
+  [Parameter]
+  public string SearchText { get; set; }
+  private int? Take;
+  private int? Skip;
+  public int HoveringOverImageTagId { get; set; }
+  Image SelectedImage { get; set; }
+  bool ShowModal => SelectedImage != null;
+
+
+  protected override async Task OnInitializedAsync()
+  {
+      Reset();
+      await GetNextItemsAsync();
+  }
+
+
+  public async Task GetNextItemsAsync()
+  {
+      if (!string.IsNullOrWhiteSpace(SearchText))
+      {
+          await Search();
+      }
+      else
+      {
+      
+          Items.AddRange(await Service.GetAllAsync(Skip, Take));
+          Skip += Take - 1;
+      }
+  }
+
+  public async Task SearchAction()
+  {
+      Reset();
+      await Search();
+  }
+
+  protected async Task Search()
+  {
+      Items.AddRange(await Service.SearchAsync(SearchText, Skip, Take));
+      Skip += Take - 1;
+
+  }
+
+  protected Task Search(string searchText)
+  {
+      SearchText = searchText;
+      return SearchAction();
+
+  }
+
+  public async Task AddTag(Models.Image image)
+  {
+      var imageTag = await ImageTagService.CreateAsync(new ImageTag
+      {
+          Image = image,
+          Tag = await TagService.GetRandom()
+      });
+      image.ImageTags.Add(imageTag);
+      this.StateHasChanged();
+  }
+
+
+  public async Task LoadAll()
+  {
+      Take = null;
+      await GetNextItemsAsync();
+    /*
+      bool keepGoing = true;
+      Take = 5;
+      while (keepGoing)
+      {
+          var count = Items.Count;
+          Items.AddRange(await Service.GetAllAsync(Skip, Take));
+          Skip += Take - 1;
+          this.StateHasChanged();
+          if (count == Items.Count)
+              keepGoing = false;
+      }*/
+  }
+
+
+  private void Reset()
+  {
+      Skip = 0;
+      Take = 20;
+      Items = new List<Image>();
+  }
+
+  void ViewFullSizeImage(Image image)
+  {
+      SelectedImage = image;
+      this.StateHasChanged();
+      //var parameters = new ModalParameters();
+      //parameters.Add("Image", image);
+      //Modal.Show("Image", typeof(ImageComponent), parameters);
+  }
+}
